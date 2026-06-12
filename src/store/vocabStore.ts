@@ -3,7 +3,7 @@ import type { AppState, WordProgress } from '../types';
 import { initProgress, reviewWord } from '../utils/sm2';
 import { WORDS } from '../data/words';
 
-const STORAGE_KEY = 'vocabup_state';
+const STORAGE_KEY = 'lingoloom_state';
 
 const defaultState: AppState = {
   wordProgress: {},

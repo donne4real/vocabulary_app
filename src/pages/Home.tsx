@@ -28,7 +28,7 @@ export default function Home({ onNavigate }: Props) {
     <div className="px-4 pt-12 pb-28 max-w-lg mx-auto animate-fade-up">
       {/* App title */}
       <header className="mb-6">
-        <h1 className="font-serif text-3xl font-semibold text-slate-800">VocabUp</h1>
+        <h1 className="font-serif text-3xl font-semibold text-slate-800">LingoLoom</h1>
         <p className="text-slate-500 text-sm mt-0.5">Build your vocabulary, one word at a time.</p>
       </header>
 
