@@ -5,7 +5,13 @@ import { masteryLevel } from '../utils/sm2';
 import type { Category } from '../types';
 
 export default function Progress() {
-  const { state } = useStore();
+  const { state, streak, resetProgress } = useStore();
+
+  const handleReset = () => {
+    if (window.confirm('Reset all progress? Your streak, reviews and quiz scores will be cleared. This cannot be undone.')) {
+      resetProgress();
+    }
+  };
 
   const totalWords = WORDS.length;
   const mastered = WORDS.filter((w) => masteryLevel(state.wordProgress[w.id] ?? {} as never) === 'mastered').length;
@@ -46,7 +52,7 @@ export default function Progress() {
         <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center gap-3">
           <Flame size={28} className="text-orange-500 shrink-0" />
           <div>
-            <p className="text-2xl font-bold text-orange-600">{state.streak}</p>
+            <p className="text-2xl font-bold text-orange-600">{streak}</p>
             <p className="text-xs text-slate-500">Day streak</p>
           </div>
         </div>
@@ -148,6 +154,13 @@ export default function Progress() {
           <p className="text-sm text-slate-500">Total flashcard reviews</p>
         </div>
       </div>
+
+      <button
+        onClick={handleReset}
+        className="mt-5 w-full py-3 rounded-2xl border border-red-200 text-red-600 text-sm font-semibold active:scale-[.98] transition-transform"
+      >
+        Reset progress
+      </button>
     </div>
   );
 }

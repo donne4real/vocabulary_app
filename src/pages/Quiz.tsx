@@ -26,28 +26,36 @@ function shuffle<T>(arr: T[]): T[] {
 function buildQuiz(size = 10): Question[] {
   const pool = shuffle(WORDS).slice(0, size);
   return pool.map((word) => {
-    const distractors = shuffle(WORDS.filter((w) => w.id !== word.id))
-      .slice(0, 3)
-      .map((w) => w.definition);
-    const choices = shuffle([word.definition, ...distractors]);
+    // Same part of speech where possible, so the answer can't be guessed
+    // from grammar alone.
+    const others = WORDS.filter((w) => w.id !== word.id);
+    const samePos = others.filter((w) => w.partOfSpeech === word.partOfSpeech);
+    const distractors = shuffle(samePos.length >= 3 ? samePos : others).slice(0, 3);
+    const choiceWords = shuffle([word, ...distractors]);
     return {
       word,
-      choices,
-      correctIndex: choices.indexOf(word.definition),
+      choices: choiceWords.map((w) => w.word),
+      correctIndex: choiceWords.findIndex((w) => w.id === word.id),
     };
   });
 }
 
 type Phase = 'quiz' | 'results';
 
+// Remounting the session with a new key gives "Try Again" fresh questions
+// and clears the previous answers.
 export default function Quiz({ onNavigate }: Props) {
+  const [round, setRound] = useState(0);
+  return <QuizSession key={round} onNavigate={onNavigate} onRestart={() => setRound((r) => r + 1)} />;
+}
+
+function QuizSession({ onNavigate, onRestart }: Props & { onRestart: () => void }) {
   const { recordQuiz } = useStore();
   const [questions] = useState<Question[]>(() => buildQuiz(10));
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<boolean[]>([]);
   const [phase, setPhase] = useState<Phase>('quiz');
-  const [quizKey, setQuizKey] = useState(0);
 
   const q = questions[current];
   const score = answers.filter(Boolean).length;
@@ -72,17 +80,13 @@ export default function Quiz({ onNavigate }: Props) {
     }
   };
 
-  const restart = () => {
-    setQuizKey((k) => k + 1);
-  };
-
   const scoreColor =
     score >= 8 ? 'text-teal-600' : score >= 5 ? 'text-amber-500' : 'text-red-500';
   const scoreEmoji = score >= 8 ? '🏆' : score >= 5 ? '👍' : '💪';
 
   if (phase === 'results') {
     return (
-      <div key={quizKey} className="flex flex-col items-center justify-center h-full px-6 text-center pb-24 animate-fade-up">
+      <div className="flex flex-col items-center justify-center h-full px-6 text-center pb-24 animate-fade-up">
         <p className="text-5xl mb-4">{scoreEmoji}</p>
         <h2 className="font-serif text-2xl font-semibold text-slate-800">Quiz Complete!</h2>
         <p className={`text-5xl font-bold mt-4 ${scoreColor}`}>{score}/10</p>
@@ -109,7 +113,7 @@ export default function Quiz({ onNavigate }: Props) {
 
         <div className="flex gap-3 mt-6">
           <button
-            onClick={restart}
+            onClick={onRestart}
             className="bg-teal-600 text-white px-6 py-3 rounded-full font-semibold"
           >
             Try Again
@@ -128,7 +132,7 @@ export default function Quiz({ onNavigate }: Props) {
   const progress = ((current) / questions.length) * 100;
 
   return (
-    <div key={quizKey} className="flex flex-col h-full pt-12 pb-28 animate-fade-up">
+    <div className="flex flex-col h-full pt-12 pb-28 animate-fade-up">
       {/* Top bar */}
       <div className="px-4 flex items-center gap-3 mb-5">
         <button onClick={() => onNavigate('home')} className="p-2 rounded-full hover:bg-slate-100 text-slate-500">

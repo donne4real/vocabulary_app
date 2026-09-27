@@ -17,7 +17,7 @@ const TABS: { page: Page; label: string; icon: typeof Home }[] = [
 export default function BottomNav({ current, onNavigate }: Props) {
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 pb-safe z-40">
-      <div className="flex">
+      <div className="flex max-w-lg mx-auto">
         {TABS.map(({ page, label, icon: Icon }) => {
           const active = current === page;
           return (

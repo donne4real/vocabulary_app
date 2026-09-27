@@ -11,10 +11,13 @@ interface Props {
 }
 
 export default function Home({ onNavigate }: Props) {
-  const { state, getDueWords } = useStore();
+  const { state, streak, getDueCounts } = useStore();
   const [detailWord, setDetailWord] = useState<Word | null>(null);
   const daily = getDailyWord();
-  const dueCount = getDueWords().length;
+  const due = getDueCounts();
+  // Rotates with the word of the day so the list isn't always the same five.
+  const dailyIndex = WORDS.indexOf(daily);
+  const exploreWords = Array.from({ length: 5 }, (_, i) => WORDS[(dailyIndex + 1 + i) % WORDS.length]);
 
   const mastered = WORDS.filter((w) => masteryLevel(state.wordProgress[w.id] ?? { attempts: 0, repetitions: 0 } as never) === 'mastered').length;
   const learning = WORDS.filter((w) => {
@@ -36,7 +39,7 @@ export default function Home({ onNavigate }: Props) {
       <div className="flex items-center gap-2 mb-6">
         <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-full px-3 py-1.5">
           <Flame size={16} className="text-orange-500" />
-          <span className="text-sm font-semibold text-orange-600">{state.streak} day streak</span>
+          <span className="text-sm font-semibold text-orange-600">{streak} day streak</span>
         </div>
         <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-100 rounded-full px-3 py-1.5">
           <Star size={16} className="text-teal-500" />
@@ -71,7 +74,11 @@ export default function Home({ onNavigate }: Props) {
           >
             <Brain size={24} className="text-teal-500 mb-2" />
             <p className="font-semibold text-slate-800 text-sm">Flashcards</p>
-            <p className="text-xs text-slate-500 mt-0.5">{dueCount} cards due</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {due.reviews === 0 && due.newWords === 0
+                ? 'All caught up'
+                : `${due.reviews} due · ${due.newWords} new`}
+</p>
           </button>
           <button
             onClick={() => onNavigate('quiz')}
@@ -110,7 +117,7 @@ export default function Home({ onNavigate }: Props) {
           <button onClick={() => onNavigate('browse')} className="text-xs text-teal-600 font-medium">See all →</button>
         </div>
         <div className="space-y-2">
-          {WORDS.slice(0, 5).map((w) => (
+          {exploreWords.map((w) => (
             <button
               key={w.id}
               onClick={() => setDetailWord(w)}

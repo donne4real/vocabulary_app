@@ -30,7 +30,9 @@ export type Page = 'home' | 'browse' | 'study' | 'quiz' | 'progress';
 export interface AppState {
   wordProgress: Record<string, WordProgress>;
   streak: number;
-  lastStudiedDate: string; // YYYY-MM-DD
+  lastStudiedDate: string; // YYYY-MM-DD, local time
   quizBest: number;        // best quiz score out of 10
   totalStudied: number;
+  newWordsDate: string;    // YYYY-MM-DD the new-word count below applies to
+  newWordsCount: number;   // new words introduced on newWordsDate
 }

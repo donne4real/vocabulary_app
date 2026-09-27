@@ -10,12 +10,12 @@ interface Props {
 
 type Phase = 'front' | 'back' | 'done';
 
+// A card marked "Again" comes back this many cards later in the session.
+const RETRY_GAP = 3;
+
 export default function Study({ onNavigate }: Props) {
-  const { getDueWords, reviewWord } = useStore();
-  const [queue] = useState<Word[]>(() => {
-    const words = getDueWords();
-    return words.slice(0, 20);
-  });
+  const { getStudyQueue, reviewWord } = useStore();
+  const [queue, setQueue] = useState<Word[]>(getStudyQueue);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('front');
   const [key, setKey] = useState(0);
@@ -30,7 +30,13 @@ export default function Study({ onNavigate }: Props) {
     (quality: 1 | 3 | 4 | 5) => {
       if (!current) return;
       reviewWord(current.id, quality);
-      if (index + 1 >= queue.length) {
+      let nextQueue = queue;
+      if (quality === 1) {
+        const at = Math.min(index + 1 + RETRY_GAP, queue.length);
+        nextQueue = [...queue.slice(0, at), current, ...queue.slice(at)];
+        setQueue(nextQueue);
+      }
+      if (index + 1 >= nextQueue.length) {
         setPhase('done');
       } else {
         setIndex((i) => i + 1);
@@ -38,15 +44,19 @@ export default function Study({ onNavigate }: Props) {
         setKey((k) => k + 1);
       }
     },
-    [current, index, queue.length, reviewWord],
+    [current, index, queue, reviewWord],
   );
+
+  const uniqueWords = new Set(queue.map((w) => w.id)).size;
 
   if (queue.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 text-center pb-24">
         <p className="text-5xl mb-4">🎉</p>
         <h2 className="font-serif text-2xl font-semibold text-slate-800">All caught up!</h2>
-        <p className="text-slate-500 mt-2">No cards due right now. Come back tomorrow for new reviews.</p>
+        <p className="text-slate-500 mt-2">
+          No reviews due and you've learned today's new words. Come back tomorrow for more.
+        </p>
         <button
           onClick={() => onNavigate('home')}
           className="mt-6 bg-teal-600 text-white px-6 py-3 rounded-full font-semibold"
@@ -62,7 +72,7 @@ export default function Study({ onNavigate }: Props) {
       <div className="flex flex-col items-center justify-center h-full px-6 text-center pb-24 animate-fade-up">
         <p className="text-5xl mb-4">✅</p>
         <h2 className="font-serif text-2xl font-semibold text-slate-800">Session complete!</h2>
-        <p className="text-slate-500 mt-2">You reviewed {queue.length} words.</p>
+        <p className="text-slate-500 mt-2">You reviewed {uniqueWords} words.</p>
         <div className="flex gap-3 mt-6">
           <button
             onClick={() => onNavigate('home')}

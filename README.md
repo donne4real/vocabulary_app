@@ -8,8 +8,8 @@ A mobile-first vocabulary learning app with flashcards, quizzes, and spaced repe
 
 ## Features
 
-- **530+ curated words** across four categories: GRE, SAT, Common, and Business
-- **Flashcard study** powered by the SM-2 spaced repetition algorithm — cards resurface at the optimal moment for retention
+- **600+ curated words** across four categories: GRE (most of the list), SAT, Common, and Business
+- **Flashcard study** powered by the SM-2 spaced repetition algorithm — due reviews first, then up to 10 new words a day mixed across categories; missed cards come back later in the same session
 - **Quick Quiz** — 10-question multiple choice to test your recall
 - **Word browser** — filter and search the full library by category and difficulty
 - **Progress tracking** — streak counter, mastery levels (learning → reviewing → mastered), and study stats
@@ -36,6 +36,9 @@ npm install
 # Start the dev server
 npm run dev
 
+# Run the tests
+npm test
+
 # Build for production
 npm run build
 ```
@@ -58,7 +61,8 @@ src/
 ├── store/
 │   └── vocabStore.ts       # Global state (Context + useReducer + localStorage)
 ├── utils/
-│   └── sm2.ts              # SM-2 spaced repetition algorithm
+│   ├── sm2.ts              # SM-2 spaced repetition algorithm
+│   └── schedule.ts         # Study queue, daily new-word limit, streak dates
 └── types.ts                # Shared TypeScript types
 ```
 

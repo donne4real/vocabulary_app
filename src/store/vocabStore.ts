@@ -1,6 +1,15 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
-import type { AppState, WordProgress } from '../types';
+import { createContext, createElement, useContext, useReducer, useEffect } from 'react';
+import type { AppState, Word, WordProgress } from '../types';
 import { initProgress, reviewWord } from '../utils/sm2';
+import {
+  buildStudyQueue,
+  currentStreak,
+  dueReviews,
+  localDateStr,
+  newWordsLeftToday,
+  nextStreak,
+  pickNewWords,
+} from '../utils/schedule';
 import { WORDS } from '../data/words';
 
 const STORAGE_KEY = 'lingoloom_state';
@@ -11,6 +20,8 @@ const defaultState: AppState = {
   lastStudiedDate: '',
   quizBest: 0,
   totalStudied: 0,
+  newWordsDate: '',
+  newWordsCount: 0,
 };
 
 type Action =
@@ -18,31 +29,22 @@ type Action =
   | { type: 'RECORD_QUIZ'; score: number }
   | { type: 'RESET' };
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'REVIEW_WORD': {
-      const existing = state.wordProgress[action.wordId] ?? initProgress(action.wordId);
-      const updated = reviewWord(existing, action.quality);
-      const today = todayStr();
-      const wasYesterday =
-        state.lastStudiedDate ===
-        new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-      const newStreak =
-        state.lastStudiedDate === today
-          ? state.streak
-          : wasYesterday
-            ? state.streak + 1
-            : 1;
+      const previous = state.wordProgress[action.wordId];
+      const isNew = !previous || previous.attempts === 0;
+      const updated = reviewWord(previous ?? initProgress(action.wordId), action.quality);
+      const today = localDateStr();
+      const newWordsSoFar = state.newWordsDate === today ? state.newWordsCount : 0;
       return {
         ...state,
         wordProgress: { ...state.wordProgress, [action.wordId]: updated },
-        streak: newStreak,
+        streak: nextStreak(state.streak, state.lastStudiedDate, today),
         lastStudiedDate: today,
         totalStudied: state.totalStudied + 1,
+        newWordsDate: today,
+        newWordsCount: newWordsSoFar + (isNew ? 1 : 0),
       };
     }
     case 'RECORD_QUIZ':
@@ -66,13 +68,15 @@ function loadState(): AppState {
 
 // ── Context ───────────────────────────────────────────────────────────
 
-import { createElement } from 'react';
-
 interface StoreContextValue {
   state: AppState;
+  /** Streak to show: 0 once a day has been missed. */
+  streak: number;
   reviewWord: (wordId: string, quality: 1 | 3 | 4 | 5) => void;
   recordQuiz: (score: number) => void;
-  getDueWords: () => typeof WORDS;
+  resetProgress: () => void;
+  getStudyQueue: () => Word[];
+  getDueCounts: () => { reviews: number; newWords: number };
   getProgress: (wordId: string) => WordProgress;
 }
 
@@ -82,21 +86,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadState);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Storage blocked or full: progress lasts for this visit only.
+    }
   }, [state]);
+
+  const today = localDateStr();
 
   const value: StoreContextValue = {
     state,
+    streak: currentStreak(state.streak, state.lastStudiedDate, today),
     reviewWord: (wordId, quality) => dispatch({ type: 'REVIEW_WORD', wordId, quality }),
     recordQuiz: (score) => dispatch({ type: 'RECORD_QUIZ', score }),
-    getDueWords: () => {
-      const now = Date.now();
-      const due = WORDS.filter((w) => {
-        const p = state.wordProgress[w.id];
-        return !p || now >= p.nextReview;
-      });
-      return due.length > 0 ? due : WORDS.slice(0, 20);
-    },
+    resetProgress: () => dispatch({ type: 'RESET' }),
+    getStudyQueue: () => buildStudyQueue(WORDS, state, Date.now(), today),
+    getDueCounts: () => ({
+      reviews: dueReviews(WORDS, state, Date.now()).length,
+      newWords: pickNewWords(WORDS, state, newWordsLeftToday(state, today)).length,
+    }),
     getProgress: (wordId) => state.wordProgress[wordId] ?? initProgress(wordId),
   };
 

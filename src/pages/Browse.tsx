@@ -85,7 +85,7 @@ export default function Browse() {
                   onClick={() => setDetailWord(w)}
                   className="w-full text-left bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-start gap-3 shadow-sm active:scale-[.98] transition-transform"
                 >
-                  <div className="mt-1.5 w-2 h-2 rounded-full shrink-0 ${MASTERY_DOT[level]}"
+                  <div className="mt-1.5 w-2 h-2 rounded-full shrink-0"
                     style={{ background: level === 'new' ? '#cbd5e1' : level === 'learning' ? '#f87171' : level === 'reviewing' ? '#fbbf24' : '#14b8a6' }}
                   />
                   <div className="flex-1 min-w-0">
